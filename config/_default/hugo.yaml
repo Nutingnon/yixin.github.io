@@ -4,8 +4,8 @@
 # This file is formatted using YAML syntax - learn more at https://learnxinyminutes.com/docs/yaml/
 
 title: "Yixin's Academic Blog" # Website name
-# baseURL: 'https://example.com/' # Website URL
-baseURL: "yixinhuang.cn"
+baseURL: 'https://example.com/' # Website URL
+# baseURL: "yixinhuang.cn"
 
 ############################
 ## PAGE OPTIONS
