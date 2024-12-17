@@ -1,13 +1,22 @@
 ---
 title: CLIP 系列学习 (CLIP, BLIP, Long-CLIP, GLIP, PyramidCLIP，MotionCLIP和SigLIP)
 date: 2024-12-17
+summary: CLIP 模型及其后续改进工作的解读
+image:
+  caption: 'Image credit to CLIP paper'
+authors:
+  - admin
+
+tags:
+  - vision-language model
+  - pretrain
 ---
 
 ## 引言
 
 ### 什么是CLIP
 
-[CLIP (Contrastive Language-Image Pre-training)](https://arxiv.org/abs/2103.00020) <font style="color:rgb(25, 26, 36);">模型由OpenAI在2021年提出，是一种用于图像和文本联合表示学习的多模态预训练模型。其核心思想在于，通过对比学习的方式，在大规模图像-文本对数据集上进行预训练，使模型能够学习到图像和文本之间的深层语义关联。这种学习方式不仅突破了传统视觉模型在泛化性和迁移能力上的局限，还为实现真正的zero-shot学习提供了可能。</font>
+[CLIP (Contrastive Language-Image Pre-training)](https://arxiv.org/abs/2103.00020)型由OpenAI在2021年提出，是一种用于图像和文本联合表示学习的多模态预训练模型。其核心思想在于，通过对比学习的方式，在大规模图像-文本对数据集上进行预训练，使模型能够学习到图像和文本之间的深层语义关联。这种学习方式不仅突破了传统视觉模型在泛化性和迁移能力上的局限，还为实现真正的zero-shot学习提供了可能。
 
 [https://miro.medium.com/v2/resize:fit:1400/format:webp/1*OVi8blLZw_wf2rrxdlfbdg.png](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*OVi8blLZw_wf2rrxdlfbdg.png)
 
@@ -30,7 +39,7 @@ CLIP模型的应用场景非常广泛。 在图像分类领域，CLIP可以实�
 
 #### 图像编码器和文本编码器的设计。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733715080285-5cba4a3d-172f-456e-9461-fd4f894cf365.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733715080285-5cba4a3d-172f-456e-9461-fd4f894cf365.png)
 
 
 
@@ -44,10 +53,9 @@ CLIP模型的应用场景非常广泛。 在图像分类领域，CLIP可以实�
 
 根据文章中说，在最开始实验的时候，选了一个 CNN 网络和 text Transformer 网络来做（Text Transformer 用来 predict Image caption。但后来发现 Transformer 很难去做 scaling，而且要求的计算量又大又低效。
 
-> <font style="color:rgb(0,0,0);">we show that a 63 million parameter transformer language model, which already uses twice the compute of its ResNet-50 image encoder, learns to recognize ImageNet classes three times slower than a much simpler baseline that predicts a bag-ofwords encoding of the same text.</font>
+> we show that a 63 million parameter transformer language model, which already uses twice the compute of its ResNet-50 image encoder, learns to recognize ImageNet classes three times slower than a much simpler baseline that predicts a bag-of-words encoding of the same text.
 
-<font style="color:rgb(0,0,0);">不如一个 predict bag of words 的模型，但不管是 Transformer 还是另外的 predict bag of words 这样的 baseline 都有一个问题就是想去特别精确地输出图片对应的文字。和 对比模型 比起来，要达到同样的表现水平的话，需要一个数量级的计算量。为了避开精确预测文字这种坑，CLIP 用了从大量图像-文本对中找出最合适的 pair 作为目标。所以把 bag-of-words 的 model 的 训练 loss 从 predictive objective 换成了contrastive objective 然后观察到了 4 倍的提升。这种 loss 也可以叫做 multiclass N-pair loss</font>
-
+>不如一个 predict bag of words 的模型，但不管是 Transformer 还是另外的 predict bag of words 这样的 baseline 都有一个问题就是想去特别精确地输出图片对应的文字。和 对比模型 比起来，要达到同样的表现水平的话，需要一个数量级的计算量。为了避开精确预测文字这种坑，CLIP 用了从大量图像-文本对中找出最合适的 pair 作为目标。所以把 bag-of-words 的 model 的 训练 loss 从 predictive objective 换成了contrastive objective 然后观察到了 4 倍的提升。这种 loss 也可以叫做 multiclass N-pair loss.
 
 
 图像和文本的 embedding 映射函数都采取的是简单的线性层，没有用非线性层，实验观察这两者没有什么太大区别。（但有一个 Normalization）。
@@ -57,7 +65,6 @@ CLIP模型的应用场景非常广泛。 在图像分类领域，CLIP可以实�
 对于图像这一块，用了 ResNet 的不同尺寸和 ViT（详见 open_clip)。我们图像的 scaling up 同时增加了模型的深度、宽度和分辨率。
 
 
-
 文本这一块的 text-encoder 采用了 Transformer，选用了 63Million 参数的一个 12 层 512 宽，8 个 attention-heads 的模型， 通过 BPE 来 token，vocab size 有 49152 这么大。对于 Transformer 的 scale up，只增加了宽度，没动深度
 
 
@@ -65,12 +72,7 @@ CLIP模型的应用场景非常广泛。 在图像分类领域，CLIP可以实�
 有 `[SOS]`, `[EOS]` 两个特殊的 token, `[EOS]`被认为是整个句子的 representation
 
 
-
 Masked self attention 被采用
-
-
-
-
 
 
 
@@ -124,33 +126,28 @@ loss = (loss_i + loss_t)/2
 
 #### 零样本学习能力（Zero-Shot Learning）。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733727062234-f997fbbf-4d7c-40d0-8640-4d50d19590e8.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733727062234-f997fbbf-4d7c-40d0-8640-4d50d19590e8.png)
 
 
 
 当做 zero-shot 的时候，发现得加一点 Prompt Engineering，增加了 prompt-engineering 的方法比起直接用类名，能够显著提升模型表现。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733727253469-2c959236-fc68-4c25-b9b4-a3411fb7bcdf.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733727253469-2c959236-fc68-4c25-b9b4-a3411fb7bcdf.png)
 
 prompt engineering 样例：
 
 + 狗 可以被改写为 "一张狗的照片"
 
 
-
-
-
-<font style="color:rgb(14, 14, 14);">CLIP模型对用于图像描述的单词很敏感。文本“a photo of a bird”、“a photo of a bird siting near bird feeder”或“an image of a bird”与相同的图像匹配产生的概率是不同的。</font>
+CLIP模型对用于图像描述的单词很敏感。文本“a photo of a bird”、“a photo of a bird siting near bird feeder”或“an image of a bird”与相同的图像匹配产生的概率是不同的。
 
 ![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733731333174-dc04f7b1-f5ed-43b4-b615-471e1a11a00d.png)
 
-<font style="color:rgb(14, 14, 14);"></font>
 
-<font style="color:rgb(14, 14, 14);"></font>
 
 #### 可扩展性与迁移能力。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733727084172-958d5206-d854-4e45-a517-28f23db0edae.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733727084172-958d5206-d854-4e45-a517-28f23db0edae.png)
 
 
 
@@ -168,11 +165,10 @@ prompt engineering 样例：
 
 
 
-为了证明他的 zero-shot 能力是真实的，文章做了**<font style="color:rgb(0,0,0);">Data Overlap Analysis </font>**<font style="color:rgb(0,0,0);">来证明他们用来测试 zero-shot 能力所用到的任务没有出现在他们的训练集中。</font>
+为了证明他的 zero-shot 能力是真实的，文章做了**Data Overlap Analysis**来证明他们用来测试 zero-shot 能力所用到的任务没有出现在他们的训练集中。
 
-<font style="color:rgb(0,0,0);"></font>
 
-### <font style="color:rgb(0,0,0);">应用场景</font>
+### 应用场景
 
 在图像生成、图像问答等多模态应用中已经离不开 clip 的存在。
 
@@ -380,11 +376,11 @@ Image-Text Contrastive Learning （ITC）
 
 
 
-**<font style="color:rgb(0,0,0);">Image-Text Matching </font>**<font style="color:rgb(0,0,0);">(ITM)</font>
+**Image-Text Matching (ITM)**
 
-<font style="color:rgb(0,0,0);">是一个二元的 classifier，来预测 image-text pair 是否成对。这里用的是 bi-directional self-attention masks，也就是基本没有 masks</font>
+是一个二元的 classifier，来预测 image-text pair 是否成对。这里用的是 bi-directional self-attention masks，也就是基本没有 masks
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733748033546-24d41ad7-3743-4016-892f-6463820a9a68.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733748033546-24d41ad7-3743-4016-892f-6463820a9a68.png)
 
 
 
@@ -417,7 +413,6 @@ outputs = model(**inputs)
 logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
 probs = logits_per_image.softmax(dim=1)  # we can take the softmax to get the label probabilities
 ```
-
 
 
 BLIP2
@@ -477,9 +472,9 @@ Long-CLIP: Unlocking the Long-Text Capability of CLIP | <font style="color:rgb(3
 
 效果：20%的 long-caption text-image Retrieval，6%的 traditional text-image Retrieval 的提升
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800021691-44af379d-583c-41c6-928e-c8a14bf3eef3.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800021691-44af379d-583c-41c6-928e-c8a14bf3eef3.png)
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800034615-9c820097-6c39-49f1-bfb9-d6322d6dbacb.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800034615-9c820097-6c39-49f1-bfb9-d6322d6dbacb.png)
 
 ### 扩展性
 
@@ -497,23 +492,19 @@ Long-CLIP: Unlocking the Long-Text Capability of CLIP | <font style="color:rgb(3
 
 作者认为 CLIP 虽然最大长度是 77，但有效长度更短。他们用了一个自己建的数据集叫 urban-200 （公开在了 huggingface）
 
-> <font style="color:#000000;">After the first submission, we further scaled up Urban-200 into Urban-</font>
+> After the first submission, we further scaled up Urban-200 into Urban-1k. The dataset has been released at https://huggingface.co/datasets/
 >
-> <font style="color:#000000;">1k. The dataset has been released at https://huggingface.co/datasets/</font>
->
-> <font style="color:#000000;">BeichenZhang/Urban1k. Urban-200 is used in the main paper. Detailed results</font>
->
-> <font style="color:#000000;">about Urban-1k is shown in supplementary materials.</font>
+> BeichenZhang/Urban1k. Urban-200 is used in the main paper. Detailed results about Urban-1k is shown in supplementary materials.
 
 他们认为理论上随着 text 的长度增加，信息越丰富，那么图片的 Retrieve 能力会增强（应为对该图片的描述增多了），然而他们通过实验发现，CLIP 的 R@1 准确率在文字长度超过 20 以后就增长的非常缓慢了，所以认为 CLIP 的有效长度实际上在 20.
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800823636-f335855c-c4b2-489a-a08b-b04657e81fc7.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800823636-f335855c-c4b2-489a-a08b-b04657e81fc7.png)
 
 
 
 此外，他们还发现 clip 模型在对图片进行训练时，由于是整个图片和整个 caption 进行配对的，所以对于图片的细节内容容易混淆。这里给了个例子：一张图片里含有柠檬（左）和茄子（右）。然后写 4 个 prompt，分别物体的位置和颜色进行混淆。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800929137-e358d84b-ac17-44ea-acc2-7d93bd87b043.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733800929137-e358d84b-ac17-44ea-acc2-7d93bd87b043.png)
 
 理想的情况下是 A 第一，然而 CLIP 把 A 排最后。
 
@@ -523,9 +514,9 @@ Long-CLIP: Unlocking the Long-Text Capability of CLIP | <font style="color:rgb(3
 
 #### Knowledge Preserving Stretching
 
-> <font style="color:#000000;">Therefore, instead of performing full interpolation with a fixed value, we choose to retain the embedding of the top 20 positions, which aligns with the effective length identified in our experiment. As for the remaining 57 positions, we apply interpolation using a larger ratio denoted as λ2. This process can be mathematically formulated as follows</font>
+> Therefore, instead of performing full interpolation with a fixed value, we choose to retain the embedding of the top 20 positions, which aligns with the effective length identified in our experiment. As for the remaining 57 positions, we apply interpolation using a larger ratio denoted as λ2. This process can be mathematically formulated as follows
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733801421267-399915f7-8865-4629-b16d-d82e20db5cc9.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733801421267-399915f7-8865-4629-b16d-d82e20db5cc9.png)
 
 也就是对 positional encoding 进行重新训练， 但保留位置在 20 及以内的。对于 20-77 的，用另外一个 function 去做插入，这里 $ \lambda_2 $设置为 4，两个符号不一样估计是向下取整和向上取整把。这里把 pos 最大限制为 248， 这里也就是 PE（x）中的 x 应该不超过 62。
 
@@ -606,13 +597,13 @@ LongClip/model/longclip.py --> def load_from_clip
 
 他们还把这种改过的方法和直接插值的方法的最后微调效果做了比较，确实 direct fine-tuning 可能会下降，也可能会提升，但他们的这种一定会提升。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733802067052-5c67b91b-a65f-46ee-b66e-f16ed36e0c6c.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733802067052-5c67b91b-a65f-46ee-b66e-f16ed36e0c6c.png)
 
 
 
 在具体训练中，参数设置如下，
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733801537472-899166ed-a7fb-4d5a-9808-9c576eb0aa73.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733801537472-899166ed-a7fb-4d5a-9808-9c576eb0aa73.png)
 
 
 
@@ -626,13 +617,13 @@ LongClip/model/longclip.py --> def load_from_clip
 
 所以文章中同样做了粗粒度的 shot summary caption 的图像 文本对的数据准备，然后训练
 
-> <font style="color:#000000;">Apart from aligning the fine-grained feature of an image with its long caption, we extract a coarse-grained image feature that focuses on capturing key attributes. This coarse-grained feature is then aligned with a short summary caption.By doing so,we require the model not only to capture detailed attributes but also to discern and prioritize the importance of different attribute</font>
+> Apart from aligning the fine-grained feature of an image with its long caption, we extract a coarse-grained image feature that focuses on capturing key attributes. This coarse-grained feature is then aligned with a short summary caption.By doing so,we require the model not only to capture detailed attributes but also to discern and prioritize the importance of different attribute
 
 
 
-为此，做了三个 modules，(分解、过滤、重建
+为此，做了三个 modules，(分解、过滤、重建)
 
-+ <font style="color:#DF2A3F;">component docomposition function </font>$ \mathcal{F} $, This function **decomposes the feature into several vectors that represent different attributes and also analyzes the importance of each attribute.**
++ **<font style="color:#DF2A3F;">component docomposition function </font>**$ \mathcal{F} $, This function **decomposes the feature into several vectors that represent different attributes and also analyzes the importance of each attribute.**
 + **<font style="color:#DF2A3F;">component-filtration function </font>**$ \mathcal{E} $**，根据重要性来过滤掉不重要的 attributes**
 + **component-reconstruction function **$ \mathcal{F}^{-1} $**, reconstruct the image feature**
 
@@ -784,23 +775,23 @@ $ \mathcal{L} = \mathcal{L}_{cls} + \mathcal{L}_{loc} $
 
 $ O = \text{Enc}_{I}(\text{Img}), S_{\text{cls}} = OW^{T}, \mathcal{L} = loss(S_{\text{cls}}; T)  $
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733833895387-23eada74-6b7c-4699-937a-a9c981c89e51.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733833895387-23eada74-6b7c-4699-937a-a9c981c89e51.png)
 
 
 
 ##### Language-Aware Deep Fusion
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733887877772-f8d0a3dc-666d-4cb6-83cc-0fa69f3a051a.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733887877772-f8d0a3dc-666d-4cb6-83cc-0fa69f3a051a.png)
 
 
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733888156874-b09302c8-4712-49ff-aaa9-eaf53e73ce94.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733888156874-b09302c8-4712-49ff-aaa9-eaf53e73ce94.png)
 
 
 
 ##### 模型结构
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733897955491-105ae515-3fc9-4a8f-9240-42b127e060bc.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733897955491-105ae515-3fc9-4a8f-9240-42b127e060bc.png)
 
 这里最好的出自于微软自己出的 Swin-Tiny 和 Swin-Large 两个 backbone
 
@@ -810,7 +801,7 @@ $ O = \text{Enc}_{I}(\text{Img}), S_{\text{cls}} = OW^{T}, \mathcal{L} = loss(S_
 
 #### GLIPv2
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733900094963-c26f70fa-0318-4a1a-8316-d4f71708fd5a.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733900094963-c26f70fa-0318-4a1a-8316-d4f71708fd5a.png)
 
 加了一个 inter contrrastive loss，也就是为了增加 negative pairs （左），增加了$ \mathcal{L}_{mlm} $
 
@@ -824,11 +815,11 @@ $ O = \text{Enc}_{I}(\text{Img}), S_{\text{cls}} = OW^{T}, \mathcal{L} = loss(S_
 
 
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733900645322-03cbda49-673f-4bb3-bf2c-d77eed021bc2.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733900645322-03cbda49-673f-4bb3-bf2c-d77eed021bc2.png)
 
 CLIP 在医学影像的应用中自成一派，根据评测效果，[BiomedCLIP](https://arxiv.org/abs/2303.00915) 和 [PubMedCLIP](https://github.com/sarahESL/PubMedCLIP/tree/main/PubMedCLIP) 效果最好。每个数据集也有自己代表性的 CLIP 模型
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733900783750-b265667e-559d-4010-9074-172bd1a181a8.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733900783750-b265667e-559d-4010-9074-172bd1a181a8.png)
 
 
 
@@ -864,7 +855,7 @@ CLIP 在医学影像的应用中自成一派，根据评测效果，[BiomedCLIP]
 
 这些数据集为PubMedCLIP模型的训练和评估提供了丰富的医学图像和文本对，使其能够在医学视觉问答任务中取得良好的性能。
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733901211586-35086fbd-7058-4aaf-bf9d-203fbdb401b5.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733901211586-35086fbd-7058-4aaf-bf9d-203fbdb401b5.png)
 
 
 
@@ -884,7 +875,7 @@ paper: [https://arxiv.org/abs/2303.00915](https://arxiv.org/abs/2303.00915)
 
 huggingface: [https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224](https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224)
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733901823033-15aebdfd-aa28-4978-905a-23b01ea84591.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733901823033-15aebdfd-aa28-4978-905a-23b01ea84591.png)
 
 #### 这篇论文的标题是“BiomedCLIP: a multimodal biomedical foundation model pretrained from fifteen million scientific image-text pairs”，主要介绍了一个基于大规模科学文章中的图像-文本对预训练的多模态生物医学基础模型BiomedCLIP。以下是论文中提到的数据集和数据量的信息：
 
@@ -912,7 +903,7 @@ huggingface: [https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_bas
 
 
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733902009955-5d924e56-dd95-43cc-b566-ff4d0984af8b.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1733902009955-5d924e56-dd95-43cc-b566-ff4d0984af8b.png)
 
 
 
@@ -932,7 +923,7 @@ huggingface: [https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_bas
 
 ### 技术细节
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734339600345-a7f22309-8dcc-4aa7-87e5-a03a4597519a.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734339600345-a7f22309-8dcc-4aa7-87e5-a03a4597519a.png)
 
 在训练过程中，每个 Image、text pair， 每个 image 都会转成 2 个 views，一个是 Local View 一个是 Global view。Local View 是通过不同比例的随机剪裁来做的。这里主要是组三个对
 
@@ -956,13 +947,13 @@ huggingface: [https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_bas
 
 **网络结构：**
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734340383972-d26d7e2d-8380-43a5-933d-a1d347b1cce8.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734340383972-d26d7e2d-8380-43a5-933d-a1d347b1cce8.png)
 
 
 
 #### soft label
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734340749002-694b6569-8b38-430b-ae8c-954681ac4201.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734340749002-694b6569-8b38-430b-ae8c-954681ac4201.png)
 
 这里把匹配/不匹配的 1 和 0 的关系进行一定程度的平滑。这里的平滑就是引入一个 $ \alpha = 0.2  $来解决这个事儿。这里的 N 是 mini-batch 的数量，
 
@@ -981,7 +972,7 @@ code 地址 [https://github.com/GuyTevet/MotionCLIP](https://github.com/GuyTevet
 
 项目地址很有意思，建议去看看
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734404135347-a01c1a37-27ef-49fa-bfbc-22dcd3fcddbe.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734404135347-a01c1a37-27ef-49fa-bfbc-22dcd3fcddbe.png)
 
 ![MotionCLIP overview. A motion auto-encoder is trained to simultaneously reconstruct motion sequences while aligning their latent representation with corresponding texts and images representations in CLIP space.](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734404158955-4da2db26-55e9-4368-862c-f06f252db20d.png)
 
@@ -1124,7 +1115,7 @@ l = -sum(log_sigmoid(labels * logits)) /n
 
 原本的 softmax 目标函数
 
-![](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734343285313-b6ef7240-f9f1-4470-bf22-aff799627370.png)
+![image](https://cdn.nlark.com/yuque/0/2024/png/2379769/1734343285313-b6ef7240-f9f1-4470-bf22-aff799627370.png)
 
 $ f $是 image encoder，$ g $是 text encoder。
 
